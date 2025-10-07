@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>Luyện Thi Word Form Tiếng Anh Lớp 10</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Study -->
+    <!-- Application Structure Plan: The application transforms the static list of 50 questions into an interactive quiz experience. The structure is designed for active learning: 1. A welcome screen with a start button. 2. A main quiz view that presents one question at a time to maintain focus. This view includes an input field for the user's answer, a 'Check' button for immediate feedback, and a 'Next' button to proceed. 3. A progress bar to motivate the user. 4. A results screen that appears upon completion, featuring a dynamic doughnut chart from Chart.js to visualize the score, a summary of incorrect answers for review, and a 'Restart' button. 5. A toggleable section to view all answers at once for quick reference. This interactive, step-by-step structure is more engaging and effective for exam preparation than a simple text document because it provides focused practice, instant feedback, and a clear performance summary. -->
+    <!-- Visualization & Content Choices: 
+        - Quiz Interface (HTML/CSS): Goal is to test knowledge. A card-based layout presents one question clearly. An input field and buttons facilitate interaction. This is justified as it minimizes cognitive load.
+        - Immediate Feedback (JS DOM Manipulation): Goal is to correct mistakes instantly. Text content and colors (green/red) are dynamically updated to show correct/incorrect answers. Justification: This is a core principle of effective learning.
+        - Progress Bar (HTML/CSS/JS): Goal is to inform and motivate. A simple div's width is updated to show progress. Justification: Visual progress encourages completion.
+        - Results Summary (Chart.js Canvas): Goal is to summarize performance. A doughnut chart visually represents the ratio of correct to incorrect answers. Justification: A chart provides a quick, impactful understanding of the overall result compared to just text.
+        - Incorrect Answers List (HTML/JS): Goal is to facilitate review. A dynamic list shows only the questions the user got wrong. Justification: This allows targeted review of weak points.
+        - Full Answer Key (HTML/JS): Goal is to provide a reference. A toggleable, scrollable list contains all questions and answers. Justification: This serves as a quick study guide without needing to retake the quiz.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7;
+            color: #4A4A4A;
+        }
+        .quiz-card, .results-card, .answers-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAEAEA;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #3B82F6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+        .btn-secondary {
+            background-color: #6B7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4B5563;
+        }
+         .btn-outline {
+            background-color: transparent;
+            color: #3B82F6;
+            border: 2px solid #3B82F6;
+        }
+        .btn-outline:hover {
+            background-color: #EFF6FF;
+        }
+        .btn-disabled {
+            background-color: #D1D5DB;
+            cursor: not-allowed;
+        }
+        input[type="text"] {
+            border: 2px solid #D1D5DB;
+            border-radius: 8px;
+            padding: 10px 14px;
+            width: 100%;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3B82F6;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 280px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 280px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Luyện Thi Word Form Lớp 10</h1>
+            <p class="mt-2 text-lg text-gray-600">Bài tập tương tác giúp bạn nắm vững các dạng từ loại.</p>
+        </header>
+
+        <main id="app-container">
+            <!-- Start Screen -->
+            <section id="start-screen" class="text-center quiz-card rounded-xl p-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Sẵn sàng để bắt đầu?</h2>
+                <p class="mb-6 text-gray-600">Bài kiểm tra gồm 50 câu hỏi trắc nghiệm về dạng từ. Hãy hoàn thành để kiểm tra kiến thức của bạn nhé!</p>
+                <button id="start-btn" class="btn btn-primary">Bắt đầu làm bài</button>
+            </section>
+
+            <!-- Quiz Screen -->
+            <section id="quiz-screen" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div id="progress-text" class="text-lg font-medium text-gray-700">Câu 1 / 50</div>
+                    <button id="toggle-answers-btn" class="text-sm text-blue-600 hover:underline font-semibold">Xem tất cả đáp án</button>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                    <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 2%"></div>
+                </div>
+
+                <div class="quiz-card rounded-xl p-6 sm:p-8">
+                    <div id="question-container">
+                        <p class="text-lg sm:text-xl text-gray-800 mb-4 leading-relaxed" id="question-text"></p>
+                        <p class="text-gray-500 mb-6">Điền dạng đúng của từ: <span class="font-semibold text-gray-700" id="root-word"></span></p>
+                    </div>
+                    
+                    <input type="text" id="answer-input" placeholder="Nhập câu trả lời của bạn..." autocomplete="off">
+                    
+                    <div id="feedback-container" class="mt-4 h-12 flex items-center">
+                        <p id="feedback-text" class="text-lg font-semibold"></p>
+                    </div>
+
+                    <div class="mt-4 flex flex-col sm:flex-row gap-4">
+                        <button id="check-btn" class="btn btn-primary w-full sm:w-auto">Kiểm tra</button>
+                        <button id="next-btn" class="btn btn-secondary w-full sm:w-auto hidden">Câu tiếp theo</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Screen -->
+            <section id="results-screen" class="hidden">
+                <div class="results-card rounded-xl p-6 sm:p-8 text-center">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Hoàn thành!</h2>
+                    <p class="text-lg text-gray-600 mb-6">Đây là kết quả của bạn:</p>
+                    
+                    <div class="chart-container mb-6">
+                        <canvas id="results-chart"></canvas>
+                    </div>
+
+                    <p id="score-text" class="text-2xl font-semibold text-gray-700 mb-8"></p>
+
+                    <div id="wrong-answers-container" class="mt-6 text-left">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Xem lại các câu sai:</h3>
+                        <ul id="wrong-answers-list" class="list-disc list-inside space-y-3 text-gray-700">
+                        </ul>
+                    </div>
+
+                    <button id="restart-btn" class="btn btn-primary mt-8">Làm lại từ đầu</button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- All Answers Section -->
+        <section id="all-answers-screen" class="hidden mt-8">
+            <div class="answers-card rounded-xl p-6 sm:p-8">
+                 <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Tất cả đáp án</h2>
+                    <button id="close-answers-btn" class="text-xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+                </div>
+                <div class="max-h-96 overflow-y-auto pr-4">
+                    <ol class="list-decimal list-inside space-y-4">
+                        <!-- Answers will be populated here -->
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const questions = [
+            { q: "The internet is a wonderful means of ________.", root: "COMMUNICATE", a: "communication" },
+            { q: "My grandfather is a ________ man who has traveled all over the world.", root: "KNOWLEDGE", a: "knowledgeable" },
+            { q: "She felt a sense of ________ when she failed the final exam.", root: "DISAPPOINT", a: "disappointment" },
+            { q: "We need to find ________ solutions to environmental problems.", root: "EFFECT", a: "effective" },
+            { q: "The ________ in this city is getting worse because of traffic jams.", root: "POLLUTE", a: "pollution" },
+            { q: "They have an ________ house in the suburbs.", root: "ATTRACT", a: "attractive" },
+            { q: "She has been working ________ since morning.", root: "TIRE", a: "tirelessly" },
+            { q: "The famous singer is admired for his powerful ________.", root: "PERFORM", a: "performance" },
+            { q: "Tet is a ________ festival for the Vietnamese people.", root: "TRADITION", a: "traditional" },
+            { q: "The children looked ________ at the magic show.", root: "EXCITE", a: "excitedly" },
+            { q: "He finished his homework ________ and went out to play.", root: "QUICK", a: "quickly" },
+            { q: "This book is about the ________ of the telephone.", root: "INVENT", a: "invention" },
+            { q: "Learning English is very ________ to your job.", root: "USE", a: "useful" },
+            { q: "The government should do more to ________ wildlife.", root: "PROTECTION", a: "protect" },
+            { q: "Ho Chi Minh City is the biggest ________ center in Vietnam.", root: "COMMERCE", a: "commercial" },
+            { q: "The final exam will take place ________ next month.", root: "LATE", a: "later" },
+            { q: "The new school year will ________ in the next few weeks.", root: "BEGIN", a: "begin" },
+            { q: "Despite his physical ________, he competed in the race.", root: "ABLE", a: "disability" },
+            { q: "We were ________ by the beauty of Ha Long Bay.", root: "IMPRESS", a: "impressed" },
+            { q: "It's ________ to study abroad and meet people from different cultures.", root: "WONDER", a: "wonderful" },
+            { q: "They tried to find a ________ way of doing the calculations.", root: "SIMPLE", a: "simpler" },
+            { q: "The whole world is facing a climate ________.", root: "EMERGE", a: "emergency" },
+            { q: "He gave a clear ________ of the new system.", root: "EXPLAIN", a: "explanation" },
+            { q: "We must conserve natural ________ for future generations.", root: "RESOURCE", a: "resources" },
+            { q: "That country's ________ has grown rapidly in the last decade.", root: "ECONOMY", a: "economy" },
+            { q: "Walking in the forest on a sunny day is so ________.", root: "PEACE", a: "peaceful" },
+            { q: "The project was deemed ________ due to lack of funding.", root: "POSSIBLE", a: "impossible" },
+            { q: "After a long journey, we were completely ________.", root: "EXHAUST", a: "exhausted" },
+            { q: "The coastal region is considered a ________ area for tourists.", root: "DANGER", a: "dangerous" },
+            { q: "The factory was closed because it failed to meet ________ standards.", root: "SAFE", a: "safety" },
+            { q: "The sudden ________ of the rain spoiled our picnic.", root: "APPEAR", a: "disappearance" },
+            { q: "The young actor gave a ________ performance in the new movie.", root: "SUCCESS", a: "successful" },
+            { q: "She sings very ________ in the school choir.", root: "BEAUTY", a: "beautifully" },
+            { q: "Is it a good idea to bring back the death ________?", root: "PUNISH", a: "penalty" },
+            { q: "The teacher praised her for her ________ contribution to the group work.", root: "VOLUNTEER", a: "voluntary" },
+            { q: "Many people believe that ghosts are ________.", root: "EXIST", a: "non-existent" },
+            { q: "We live in a peaceful ________ with very friendly people.", root: "NEIGHBOUR", a: "neighborhood" },
+            { q: "He behaves very ________ and often gets into trouble.", root: "RESPONSIBLE", a: "irresponsibly" },
+            { q: "The doctor advised him to eat ________ and do more exercise.", root: "HEALTH", a: "healthily" },
+            { q: "The film was so ________ that I nearly fell asleep.", root: "BORE", a: "boring" },
+            { q: "What is your favorite ________ of transportation?", root: "MEAN", a: "means" },
+            { q: "We can see a great ________ of flowers in the botanical garden.", root: "VARY", a: "variety" },
+            { q: "The country has been carrying out an ________ program.", root: "INDUSTRY", a: "industrialization" },
+            { q: "The student union organized a ________ to raise money for charity.", root: "FASHION", a: "fashion show" },
+            { q: "It’s ________ difficult to find a job in this economic climate.", root: "EXTREME", a: "extremely" },
+            { q: "The company’s ________ depends heavily on market demand.", root: "DEPEND", a: "growth" },
+            { q: "We were ________ at the news that she had won the lottery.", root: "SURPRISE", a: "surprised" },
+            { q: "She spoke English so ________ that I thought she was a native speaker.", root: "FLUENT", a: "fluently" },
+            { q: "Do you know the exact ________ of the Great Wall of China?", root: "LONG", a: "length" },
+            { q: "Thank you for being so ________ with me.", root: "PATIENCE", a: "patient" }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let wrongAnswers = [];
+        let resultsChartInstance = null;
+        
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const allAnswersScreen = document.getElementById('all-answers-screen');
+
+        const startBtn = document.getElementById('start-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const toggleAnswersBtn = document.getElementById('toggle-answers-btn');
+        const closeAnswersBtn = document.getElementById('close-answers-btn');
+
+        const questionText = document.getElementById('question-text');
+        const rootWord = document.getElementById('root-word');
+        const answerInput = document.getElementById('answer-input');
+        const feedbackText = document.getElementById('feedback-text');
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        const scoreText = document.getElementById('score-text');
+        const wrongAnswersList = document.getElementById('wrong-answers-list');
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            wrongAnswers = [];
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            allAnswersScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex < questions.length) {
+                const question = questions[currentQuestionIndex];
+                questionText.textContent = question.q.replace('________', '______');
+                rootWord.textContent = question.root;
+                answerInput.value = '';
+                feedbackText.textContent = '';
+                answerInput.disabled = false;
+                answerInput.focus();
+
+                checkBtn.classList.remove('hidden', 'btn-disabled');
+                checkBtn.disabled = false;
+                nextBtn.classList.add('hidden');
+
+                progressText.textContent = `Câu ${currentQuestionIndex + 1} / ${questions.length}`;
+                progressBar.style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
+            } else {
+                showResults();
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = answerInput.value.trim().toLowerCase();
+            const correctAnswer = questions[currentQuestionIndex].a.toLowerCase();
+            
+            answerInput.disabled = true;
+            checkBtn.classList.add('btn-disabled');
+            checkBtn.disabled = true;
+            nextBtn.classList.remove('hidden');
+
+            if (userAnswer === correctAnswer) {
+                score++;
+                feedbackText.textContent = 'Chính xác!';
+                feedbackText.className = 'text-lg font-semibold text-green-600';
+            } else {
+                feedbackText.innerHTML = `Sai rồi! Đáp án đúng là: <strong class="text-red-600">${questions[currentQuestionIndex].a}</strong>`;
+                feedbackText.className = 'text-lg font-semibold text-red-500';
+                wrongAnswers.push(questions[currentQuestionIndex]);
+            }
+             if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.textContent = 'Xem kết quả';
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+
+            scoreText.textContent = `Bạn đã trả lời đúng ${score} / ${questions.length} câu.`;
+            
+            wrongAnswersList.innerHTML = '';
+            if (wrongAnswers.length > 0) {
+                wrongAnswers.forEach(q => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${q.q.replace('________', `<strong class="text-blue-600">${q.a}</strong>`)} <span class="text-gray-500">(${q.root})</span>`;
+                    wrongAnswersList.appendChild(li);
+                });
+                document.getElementById('wrong-answers-container').classList.remove('hidden');
+            } else {
+                 wrongAnswersList.innerHTML = '<li>Chúc mừng! Bạn đã trả lời đúng tất cả các câu.</li>';
+            }
+
+            const ctx = document.getElementById('results-chart').getContext('2d');
+            if(resultsChartInstance) {
+                resultsChartInstance.destroy();
+            }
+            resultsChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Đúng', 'Sai'],
+                    datasets: [{
+                        data: [score, questions.length - score],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderColor: ['#FFFFFF'],
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function populateAllAnswers() {
+            const list = allAnswersScreen.querySelector('ol');
+            list.innerHTML = '';
+            questions.forEach(q => {
+                const li = document.createElement('li');
+                li.innerHTML = `${q.q.replace('________', `<strong class="text-blue-600">${q.a}</strong>`)} <span class="text-gray-500">(${q.root})</span>`;
+                list.appendChild(li);
+            });
+        }
+
+        startBtn.addEventListener('click', startQuiz);
+        checkBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', nextQuestion);
+        restartBtn.addEventListener('click', startQuiz);
+        
+        answerInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !checkBtn.disabled) {
+                checkAnswer();
+            }
+        });
+
+        toggleAnswersBtn.addEventListener('click', () => {
+            allAnswersScreen.classList.remove('hidden');
+        });
+        
+        closeAnswersBtn.addEventListener('click', () => {
+            allAnswersScreen.classList.add('hidden');
+        });
+        
+        populateAllAnswers();
+
+    </script>
+</body>
+</html>
